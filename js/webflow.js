@@ -2033,21 +2033,6 @@ Webflow.define('scroll', module.exports = function ($) {
   var loc = win.location;
   var history = inIframe() ? null : win.history;
   var validHash = /^[a-zA-Z0-9][\w:.-]*$/;
-  var emptyHrefSelector = 'a[href="#"]';
-  /**
-   * Select only links whose href:
-   * - contains a #
-   * - is not one of our namespaced TabLink elements
-   * - is not _only_ a #
-   */
-
-  var localHrefSelector = 'a[href*="#"]:not(.w-tab-link):not(' + emptyHrefSelector + ')';
-  /**
-   * The current page url, minus the hash.
-   * Will be set in the `ready` function
-   */
-
-  var locHref;
 
   function inIframe() {
     try {
@@ -2056,29 +2041,36 @@ Webflow.define('scroll', module.exports = function ($) {
       return true;
     }
   }
-  /**
-   * Determine if we should execute custom scroll
-   */
+
+  function ready() {
+    // The current page url without the hash part.
+    var locHref = loc.href.split('#')[0]; // When clicking on a link, check if it links to another part of the page
+
+    $doc.on('click', 'a', function (e) {
+      if (Webflow.env('design')) {
+        return;
+      } // Ignore links being used by jQuery mobile
 
 
-  function validateScroll(e) {
-    if (Webflow.env('design')) {
-      return;
-    } // Ignore links being used by jQuery mobile
+      if (window.$.mobile && $(e.currentTarget).hasClass('ui-link')) {
+        return;
+      } // Ignore empty # links
 
 
-    if (window.$.mobile && $(e.currentTarget).hasClass('ui-link')) {
-      return;
-    } // The href property always contains the full url so we can compare
-    // with the document’s location to only target links on this page.
+      if (this.getAttribute('href') === '#') {
+        e.preventDefault();
+        return;
+      } // The href property always contains the full url so we can compare
+      // with the document’s location to only target links on this page.
 
 
-    var parts = this.href.split('#');
-    var hash = parts[0] === locHref ? parts[1] : null;
+      var parts = this.href.split('#');
+      var hash = parts[0] === locHref ? parts[1] : null;
 
-    if (hash) {
-      findEl(hash, e);
-    }
+      if (hash) {
+        findEl(hash, e);
+      }
+    });
   }
 
   function findEl(hash, e) {
@@ -2177,21 +2169,6 @@ Webflow.define('scroll', module.exports = function ($) {
 
   function ease(t) {
     return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-  }
-
-  function ready() {
-    locHref = loc.href.split('#')[0];
-    $doc.on('click', localHrefSelector, validateScroll);
-    /**
-     * Prevent empty hash links from triggering scroll.
-     * Legacy feature to preserve: use the default "#" link
-     * to trigger an interaction, and do not want the page
-     * to scroll to the top.
-     */
-
-    $doc.on('click', emptyHrefSelector, function (e) {
-      e.preventDefault();
-    });
   } // Export module
 
 
